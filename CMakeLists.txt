@@ -1,16 +1,16 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5)
 
 project(entwine)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
 
 set(ENTWINE_VERSION_MAJOR 2 CACHE STRING "Entwine major version" FORCE)
-set(ENTWINE_VERSION_MINOR 2 CACHE STRING "Entwine minor version" FORCE)
+set(ENTWINE_VERSION_MINOR 3 CACHE STRING "Entwine minor version" FORCE)
 set(ENTWINE_VERSION_PATCH 0 CACHE STRING "Entwine patch version" FORCE)
 set(ENTWINE_VERSION_STRING
     "${ENTWINE_VERSION_MAJOR}.${ENTWINE_VERSION_MINOR}.${ENTWINE_VERSION_PATCH}"
     CACHE STRING "Entwine version string" FORCE)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(ENTWINE_API_VERSION "3")
@@ -97,8 +97,8 @@ option(WITH_TESTS "Choose if Entwine unit tests should be built" TRUE)
 if (WITH_TESTS)
     message("Configuring with unit tests")
     enable_testing()
-    set(GOOGLETEST_VERSION 1.10.0)
-    add_subdirectory("${PROJECT_SOURCE_DIR}/test/googletest-release-1.10.0/googletest")
+    set(GOOGLETEST_VERSION 1.13.0)
+    add_subdirectory("${PROJECT_SOURCE_DIR}/test/googletest-1.13.0/googletest")
 
     add_subdirectory(test)
 else()
