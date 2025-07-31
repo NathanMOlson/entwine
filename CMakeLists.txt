@@ -63,13 +63,14 @@ set(OBJS
     $<TARGET_OBJECTS:builder>
     $<TARGET_OBJECTS:types>
     $<TARGET_OBJECTS:util>
+    $<TARGET_OBJECTS:formats>
 )
 
 if (MSVC)
     add_library(entwine STATIC ${OBJS})
-    target_link_libraries(entwine
-            PRIVATE
-            wsock32 ws2_32)
+    target_link_libraries(entwine PRIVATE wsock32 ws2_32)
+elseif(APPLE)
+    add_library(entwine STATIC ${OBJS})
 else()
     add_library(entwine SHARED ${OBJS})
 endif()
@@ -79,9 +80,9 @@ target_link_libraries(entwine
         ${LZMA_LIBRARY}
         ${CMAKE_DL_LIBS}
     PRIVATE
-        pdalcpp
         OpenSSL::applink
         OpenSSL::Crypto
+        ${PDAL_LIBRARIES}
         ${SHLWAPI}
 )
 if (CURL_FOUND)
