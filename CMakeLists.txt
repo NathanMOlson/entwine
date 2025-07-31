@@ -80,8 +80,6 @@ target_link_libraries(entwine
         ${LZMA_LIBRARY}
         ${CMAKE_DL_LIBS}
     PRIVATE
-        OpenSSL::applink
-        OpenSSL::Crypto
         ${PDAL_LIBRARIES}
         ${SHLWAPI}
 )
