@@ -1,10 +1,9 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 
-project(entwine)
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
+project(entwine LANGUAGES CXX C)
 
-set(ENTWINE_VERSION_MAJOR 2 CACHE STRING "Entwine major version" FORCE)
-set(ENTWINE_VERSION_MINOR 3 CACHE STRING "Entwine minor version" FORCE)
+set(ENTWINE_VERSION_MAJOR 3 CACHE STRING "Entwine major version" FORCE)
+set(ENTWINE_VERSION_MINOR 1 CACHE STRING "Entwine minor version" FORCE)
 set(ENTWINE_VERSION_PATCH 0 CACHE STRING "Entwine patch version" FORCE)
 set(ENTWINE_VERSION_STRING
     "${ENTWINE_VERSION_MAJOR}.${ENTWINE_VERSION_MINOR}.${ENTWINE_VERSION_PATCH}"
@@ -22,6 +21,7 @@ if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
 endif()
 
 include(FeatureSummary)
+
 
 set(ROOT_DIR ${PROJECT_SOURCE_DIR})
 set(CMAKE_DIR ${ROOT_DIR}/cmake)
@@ -42,6 +42,7 @@ endif()
 include(${CMAKE_DIR}/threads.cmake)
 include(${CMAKE_DIR}/backtrace.cmake)
 include(${CMAKE_DIR}/curl.cmake)
+include(${CMAKE_DIR}/nlohmann.cmake)
 include(${CMAKE_DIR}/openssl.cmake)
 include(${CMAKE_DIR}/pdal.cmake)
 #
@@ -67,7 +68,9 @@ set(OBJS
 
 if (MSVC)
     add_library(entwine STATIC ${OBJS})
-    target_link_libraries(entwine PRIVATE wsock32 ws2_32)
+    target_link_libraries(entwine
+            PRIVATE
+            wsock32 ws2_32)
 elseif(APPLE)
     add_library(entwine STATIC ${OBJS})
 else()
@@ -79,9 +82,15 @@ target_link_libraries(entwine
         ${LZMA_LIBRARY}
         ${CMAKE_DL_LIBS}
     PRIVATE
-        ${PDAL_LIBRARIES}
+        pdalcpp
         ${SHLWAPI}
 )
+if (CURL_FOUND)
+    target_link_libraries(entwine
+        PRIVATE
+            CURL::libcurl
+    )
+endif()
 
 set_target_properties(
     entwine
@@ -97,8 +106,7 @@ option(WITH_TESTS "Choose if Entwine unit tests should be built" TRUE)
 if (WITH_TESTS)
     message("Configuring with unit tests")
     enable_testing()
-    set(GOOGLETEST_VERSION 1.13.0)
-    add_subdirectory("${PROJECT_SOURCE_DIR}/test/googletest-1.13.0/googletest")
+    include(${CMAKE_DIR}/gtest.cmake)
 
     add_subdirectory(test)
 else()

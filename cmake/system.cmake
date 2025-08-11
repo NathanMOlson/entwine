@@ -15,14 +15,19 @@ function(compiler_options target)
         PRIVATE
             ${CURL_DEFS}
             ${OPENSSL_DEFS}
-			${BACKTRACE_DEFS}
+            ${BACKTRACE_DEFS}
     )
     target_include_directories(${target}
         PRIVATE
-			${ROOT_DIR}
+            ${ROOT_DIR}
             ${PROJECT_BINARY_DIR}/include
             ${PDAL_INCLUDE_DIRS}
             ${LASZIP_DIRECTORIES}
-			${JSONCPP_INCLUDE_DIR}
+            ${JSONCPP_INCLUDE_DIR}
+    )
+
+    target_link_libraries(${target}
+        PRIVATE
+            nlohmann_json::nlohmann_json
     )
 endfunction()

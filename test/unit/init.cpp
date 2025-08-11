@@ -10,7 +10,7 @@ TEST(init, initializes)
     {
         std::cout << "Downloading test data..." << std::endl;
 
-        const std::string base("https://github.com/PDAL/data/raw/master/entwine/test/");
+        const std::string base("https://github.com/PDAL/data/raw/refs/heads/main/entwine/test/");
         const std::vector<std::string> files {
             "ellipsoid-multi/ned.laz",
             "ellipsoid-multi/neu.laz",
@@ -22,7 +22,8 @@ TEST(init, initializes)
             "ellipsoid-multi/swu.laz",
             "ellipsoid-multi/zzz.txt",
             "ellipsoid-wrong-srs.laz",
-            "ellipsoid.laz"
+            "ellipsoid.laz",
+            "ellipsoid14.laz"
         };
 
         arbiter::mkdirp(test::dataPath());

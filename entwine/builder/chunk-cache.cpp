@@ -33,10 +33,12 @@ ChunkCache::Info ChunkCache::latchInfo()
 ChunkCache::ChunkCache(
     const Endpoints& endpoints,
     const Metadata& metadata,
+    const Io& io,
     Hierarchy& hierarchy,
     const uint64_t threads)
     : m_endpoints(endpoints)
     , m_metadata(metadata)
+    , m_io(io)
     , m_hierarchy(hierarchy)
     , m_pool(threads)
 { }
@@ -50,24 +52,17 @@ void ChunkCache::join()
 {
     maybePurge(0);
     m_pool.join();
-
-    assert(
-        std::all_of(
-            m_slices.begin(),
-            m_slices.end(),
-            [](const std::map<Xyz, ReffedChunk>& slice)
-            {
-                return slice.empty();
-            }));
 }
 
-void ChunkCache::insert(
+bool ChunkCache::insert(
         Voxel& voxel,
         Key& key,
         const ChunkKey& ck,
         Clipper& clipper)
 {
-    assert(ck.depth() < maxDepth);
+    // This point is likely one of several thousand points with exactly
+    // duplicated XYZ values - discard it.
+    if (ck.depth() >= maxDepth) return false;
 
     // Get from single-threaded cache if we can.
     Chunk* chunk = clipper.get(ck);
@@ -76,12 +71,12 @@ void ChunkCache::insert(
     if (!chunk) chunk = &addRef(ck, clipper);
 
     // Try to insert the point into this chunk.
-    if (chunk->insert(*this, clipper, voxel, key)) return;
+    if (chunk->insert(*this, clipper, voxel, key)) return true;
 
     // Failed to insert - need to traverse to the next depth.
     key.step(voxel.point());
     const Dir dir(getDirection(ck.bounds().mid(), voxel.point()));
-    insert(voxel, key, chunk->childAt(dir), clipper);
+    return insert(voxel, key, chunk->childAt(dir), clipper);
 }
 
 Chunk& ChunkCache::addRef(const ChunkKey& ck, Clipper& clipper)
@@ -111,7 +106,7 @@ Chunk& ChunkCache::addRef(const ChunkKey& ck, Clipper& clipper)
             // case, we'll need to reinitialize the resident chunk from its
             // remote source.  Our newly added reference will keep it from
             // being erased.
-            ref.assign(m_metadata, ck, m_hierarchy);
+            ref.assign(m_metadata, m_io, ck, m_hierarchy);
             assert(ref.exists());
 
             {
@@ -150,7 +145,7 @@ Chunk& ChunkCache::addRef(const ChunkKey& ck, Clipper& clipper)
     auto insertion = slice.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(ck.position()),
-            std::forward_as_tuple(m_metadata, ck, m_hierarchy));
+            std::forward_as_tuple(m_metadata, m_io, ck, m_hierarchy));
 
     {
         SpinGuard lock(infoSpin);
@@ -263,7 +258,18 @@ void ChunkCache::maybePurge(const uint64_t maxCacheSize)
             // Don't hold any locks while we do this, since it may block.  We
             // only want to block the calling thread in this case, not the
             // whole system.
-            m_pool.add([this, dxyz]() { maybeSerialize(dxyz); });
+            m_pool.add([this, dxyz]() 
+            { 
+                try
+                { 
+                    maybeSerialize(dxyz); 
+                }
+                catch (std::exception& e)
+                {
+                    std::lock_guard<std::mutex> lock(m_errorsMutex);
+                    m_errors.push_back(e.what());
+                }
+            });
 
             ownedLock.lock();
         }

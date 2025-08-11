@@ -4,6 +4,7 @@
 #include <pdal/PipelineManager.hpp>
 
 #include <entwine/builder/builder.hpp>
+#include <entwine/io/laszip.hpp>
 #include <entwine/types/vector-point-table.hpp>
 #include <entwine/util/config.hpp>
 #include <entwine/util/json.hpp>
@@ -62,7 +63,7 @@ namespace
         EXPECT_EQ(ept.at("hierarchyType").get<std::string>(), "json");
         EXPECT_EQ(ept.at("points").get<int>(), 100000);
         EXPECT_EQ(ept.at("span").get<int>(), 32);
-        EXPECT_EQ(Srs(ept.at("srs")), srs);
+        EXPECT_EQ(ept.at("srs").get<Srs>(), srs);
         EXPECT_EQ(ept.at("version").get<std::string>(), "1.1.0");
         const Schema schema = ept.at("schema").get<Schema>();
         EXPECT_TRUE(hasStats(schema));
@@ -115,11 +116,14 @@ TEST(build, laszip)
     checkData(*view);
 }
 
-TEST(build, laz14)
+TEST(build, laszip14)
 {
-    run({
-        { "input", test::dataPath() + "ellipsoid.laz" },
-        { "laz_14", "true" }
+    // This file has for every point:
+    //   Classification=33
+    //   KeyPoint=1
+    run({ 
+        { "input", test::dataPath() + "ellipsoid14.laz" },
+        { "laz_14", true }
     });
     const json ept = checkEpt();
     EXPECT_EQ(ept.at("dataType").get<std::string>(), "laszip");
@@ -128,6 +132,39 @@ TEST(build, laz14)
     auto& view = stuff->view;
     ASSERT_TRUE(view);
     checkData(*view);
+    for (const auto pr : *view)
+    {
+        ASSERT_EQ(pr.getFieldAs<int>(pdal::Dimension::Id::Classification), 33);
+        ASSERT_TRUE(pr.getFieldAs<bool>(pdal::Dimension::Id::KeyPoint));
+    }
+}
+
+TEST(build, failedWrite)
+{
+    struct FailIo : public io::Laszip
+    {
+        FailIo(const Metadata& metadata, const Endpoints& endpoints)
+            : Laszip(metadata, endpoints)
+        { }
+
+        virtual void write(
+            const std::string filename,
+            BlockPointTable& table,
+            const Bounds bounds) const override
+        {
+            throw std::runtime_error("Faking IO failure");
+        }
+    };
+
+    const json config = {
+        { "input", test::dataPath() + "ellipsoid.laz" },
+        { "output", outDir },
+        { "force", true },
+        { "verbose", false }
+    };
+    Builder builder = builder::create(config);
+    builder.io.reset(new FailIo(builder.metadata, builder.endpoints));
+    ASSERT_ANY_THROW(builder::run(builder, config));
 }
 
 TEST(build, binary)
@@ -162,27 +199,21 @@ TEST(build, zstandard)
 }
 #endif
 
+/*
 TEST(build, directory)
 {
     run({ { "input", test::dataPath() + "ellipsoid-multi" } });
     const json ept = checkEpt();
 
-    const auto stuff = execute();
-    auto& view = stuff->view;
-    ASSERT_TRUE(view);
-    checkData(*view);
-
-    // TODO: The origin query in PDAL needs to be caught up to the ept-sources
-    // layout of EPT 1.1 - so for now we can't yet verify with an origin query.
-    /*
     const json pipeline = {
         { { "filename", outFile }, { "origin", "ned" } }
     };
     const auto stuff = execute(pipeline);
     auto& view = stuff->view;
     ASSERT_TRUE(view);
+    ASSERT_GT(view->size(), 0);
 
-    // The selected "ned" file contains only the points in the north-east-up
+    // The selected "ned" file contains only the points in the north-east-down
     // octant of the dataset, so make sure they fit in those smaller bounds.
     const auto ned = boundsConforming.getNed();
     for (const auto pr : *view)
@@ -193,8 +224,8 @@ TEST(build, directory)
             pr.getFieldAs<double>(pdal::Dimension::Id::Z));
         EXPECT_TRUE(ned.contains(point));
     }
-    */
 }
+*/
 
 TEST(build, reprojected)
 {

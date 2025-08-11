@@ -104,7 +104,7 @@ void to_json(json& j, const Dimension& dim)
 
     if (dim.scale != 1) j.update({ { "scale", dim.scale } });
     if (dim.offset != 0) j.update({ { "offset", getTypedValue(dim.offset) } });
-    if (dim.stats) j.update(*dim.stats);
+    if (dim.stats && dim.stats->count > 0) j.update(*dim.stats);
 }
 
 void from_json(const json& j, Dimension& dim)
@@ -228,22 +228,41 @@ Schema combine(Schema agg, const Schema& cur, const bool fixed)
     return agg;
 }
 
-Schema fromLayout(const pdal::PointLayout& layout)
+Schema fromLayout(const pdal::PointLayout& layout, const bool islas)
 {
     Schema list;
     for (const DimId id : layout.dims())
     {
-        list.push_back(Dimension(layout.dimName(id), layout.dimType(id)));
+        if (islas)
+        {
+            // If we're writing to LAS, then we don't write these values in the
+            // schema since they all get packed into Classification.
+            if (id != DimId::Synthetic && id != DimId::KeyPoint &&
+                id != DimId::Withheld && id != DimId::Overlap)
+            {
+                list.push_back(Dimension(layout.dimName(id), layout.dimType(id)));
+            }
+        }
+        else list.push_back(Dimension(layout.dimName(id), layout.dimType(id)));
     }
     return list;
 }
 
-FixedPointLayout toLayout(const Schema& list)
+FixedPointLayout toLayout(const Schema& list, const bool islas)
 {
     FixedPointLayout layout;
     for (const auto& dim : list)
     {
         layout.registerOrAssignFixedDim(dim.name, dim.type);
+        // If this is from LAS, then we have these values packed into
+        // Classification.
+        if (islas && dim.name == "Classification")
+        {
+            layout.registerOrAssignFixedDim("Synthetic", pdal::Dimension::Type::Unsigned8);
+            layout.registerOrAssignFixedDim("KeyPoint", pdal::Dimension::Type::Unsigned8);
+            layout.registerOrAssignFixedDim("Withheld", pdal::Dimension::Type::Unsigned8);
+            layout.registerOrAssignFixedDim("Overlap", pdal::Dimension::Type::Unsigned8);
+        }
     }
     layout.finalize();
     return layout;

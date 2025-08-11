@@ -1,0 +1,79 @@
+name: Build
+
+on:
+  push:
+      paths-ignore:
+          - 'doc/**'
+  pull_request:
+      paths-ignore:
+          - 'doc/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Support longpaths
+      run: git config --system core.longpaths true
+      if: matrix.platform == 'windows-latest'
+
+    - uses: ilammy/msvc-dev-cmd@v1
+      if: matrix.os == 'windows-latest'
+
+    - uses: conda-incubator/setup-miniconda@v3
+      with:
+        environment-file: "scripts/ci/environment.yml"
+        mamba-version: "*"
+        channels: conda-forge,defaults
+        activate-environment: "entwine-build"
+        channel-priority: true
+
+
+    - name: CMake
+      shell: bash -l {0}
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          export CC=cl.exe
+          export CXX=cl.exe
+          export PREFIX_BASE=Library
+        fi
+        mkdir build
+        cd build
+        cmake .. \
+          -G Ninja \
+          -DCMAKE_PREFIX_PATH:FILEPATH="$CONDA_PREFIX/$PREFIX_BASE" \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          -DBUILD_SHARED_LIBS=ON \
+          -DBUILD_TESTING=ON \
+          -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX} \
+          -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING=1 \
+          -Dgtest_force_shared_crt=ON \
+          ..
+
+    - name: Compile
+      shell: bash -l {0}
+      run: |
+        ninja install
+      working-directory: ./build
+
+    - name: Test
+      shell: bash -l {0}
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          export PATH="%cd%/bin:$PATH"
+          echo "PATHSETTING $PATH"
+        fi
+        ctest -VV --output-on-failure
+      working-directory: ./build
+

@@ -23,35 +23,30 @@ namespace entwine
 {
 namespace io
 {
-namespace binary
-{
 
-void write(
-    const Metadata& metadata,
-    const Endpoints& endpoints,
+void Binary::write(
     const std::string filename,
     BlockPointTable& table,
-    const Bounds bounds)
+    const Bounds bounds) const
 {
-    const auto packed = pack(metadata, table);
+    const auto packed = binary::pack(metadata, table);
     ensurePut(endpoints.data, filename + ".bin", packed);
 }
 
-void read(
-    const Metadata& metadata,
-    const Endpoints& endpoints,
-    const std::string filename,
-    VectorPointTable& table)
+void Binary::read(std::string filename, VectorPointTable& table) const
 {
     auto packed = ensureGetBinary(endpoints.data, filename + ".bin");
-    unpack(metadata, table, std::move(packed));
+    binary::unpack(metadata, table, std::move(packed));
 }
+
+namespace binary
+{
 
 std::vector<char> pack(const Metadata& m, BlockPointTable& src)
 {
     const uint64_t np(src.size());
 
-    auto layout = toLayout(m.schema);
+    auto layout = toLayout(m.schema, false);
     VectorPointTable dst(layout, np);
 
     // Handle XYZ separately since we might need to scale/offset them.
@@ -107,7 +102,7 @@ void unpack(
     VectorPointTable& dst,
     std::vector<char>&& packed)
 {
-    auto scaledLayout = toLayout(m.schema);
+    auto scaledLayout = toLayout(m.schema, false);
     VectorPointTable src(scaledLayout, std::move(packed));
 
     const uint64_t np(src.capacity());
@@ -116,7 +111,7 @@ void unpack(
     // For reading, our destination schema will always be normalized (i.e. XYZ
     // as doubles).  So we can just copy the full dimension list and then
     // transform XYZ in place, if necessary.
-    auto absoluteLayout = toLayout(m.absoluteSchema);
+    auto absoluteLayout = toLayout(m.absoluteSchema, false);
     pdal::DimTypeList dimTypes(absoluteLayout.dimTypes());
 
     pdal::PointRef srcPr(src, 0);
