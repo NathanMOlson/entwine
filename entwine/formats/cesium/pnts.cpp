@@ -46,10 +46,8 @@ std::vector<char> Pnts::build()
     });
 
     auto metadata = m_tileset.metadata();
-    io::read(metadata.dataType, metadata, 
-                m_tileset.endpoints(),
-                m_key.get().toString(),
-                table);
+    auto io = Io::create(metadata, m_tileset.endpoints());
+    io->read(m_key.get().toString(), table);
 
     return buildFile();
 }
