@@ -15,8 +15,6 @@ macro(ENTWINE_ADD_TEST _name)
         PRIVATE entwine
             GTest::gtest
             GTest::gtest_main
-            OpenSSL::applink
-            OpenSSL::Crypto
             pdalcpp
         )
     if (CURL_FOUND)
