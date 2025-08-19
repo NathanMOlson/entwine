@@ -83,6 +83,8 @@ target_link_libraries(entwine
         ${CMAKE_DL_LIBS}
     PRIVATE
         pdalcpp
+        OpenSSL::applink
+        OpenSSL::Crypto
         ${SHLWAPI}
 )
 if (CURL_FOUND)
