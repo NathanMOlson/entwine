@@ -44,13 +44,17 @@ option(WITH_OPENSSL "Build support for OpenSSL." TRUE)
 
 include(${CMAKE_DIR}/threads.cmake)
 include(${CMAKE_DIR}/backtrace.cmake)
+
 if (WITH_CURL)
-include(${CMAKE_DIR}/curl.cmake)
+    include(${CMAKE_DIR}/curl.cmake)
 endif()
+
 include(${CMAKE_DIR}/nlohmann.cmake)
+
 if (WITH_OPENSSL)
-include(${CMAKE_DIR}/openssl.cmake)
+    include(${CMAKE_DIR}/openssl.cmake)
 endif()
+
 include(${CMAKE_DIR}/pdal.cmake)
 #
 # Must come last.  Depends on vars set in other include files.
