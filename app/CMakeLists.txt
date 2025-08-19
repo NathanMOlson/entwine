@@ -24,8 +24,6 @@ target_link_libraries(app
         ${CMAKE_DL_LIBS}
         ${CMAKE_THREAD_LIBS_INIT}
         pdalcpp
-        OpenSSL::applink
-        OpenSSL::Crypto
 )
 if (CURL_FOUND)
     target_link_libraries(app
@@ -33,7 +31,13 @@ if (CURL_FOUND)
             CURL::libcurl
     )
 endif()
-
+if (OPENSSL_FOUND)
+    target_link_libraries(app
+        PRIVATE
+            OpenSSL::applink
+            OpenSSL::Crypto
+    )
+endif()
 
 
 if (DEFINED BACKTRACE_DEFS)

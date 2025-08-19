@@ -39,11 +39,18 @@ if (NOT WITH_ZSTD)
     add_definitions(-DNO_ZSTD)
 endif()
 
+option(WITH_CURL "Build support for curl." TRUE)
+option(WITH_OPENSSL "Build support for OpenSSL." TRUE)
+
 include(${CMAKE_DIR}/threads.cmake)
 include(${CMAKE_DIR}/backtrace.cmake)
+if (WITH_CURL)
 include(${CMAKE_DIR}/curl.cmake)
+endif()
 include(${CMAKE_DIR}/nlohmann.cmake)
+if (WITH_OPENSSL)
 include(${CMAKE_DIR}/openssl.cmake)
+endif()
 include(${CMAKE_DIR}/pdal.cmake)
 #
 # Must come last.  Depends on vars set in other include files.
@@ -83,14 +90,19 @@ target_link_libraries(entwine
         ${CMAKE_DL_LIBS}
     PRIVATE
         pdalcpp
-        OpenSSL::applink
-        OpenSSL::Crypto
         ${SHLWAPI}
 )
 if (CURL_FOUND)
     target_link_libraries(entwine
         PRIVATE
             CURL::libcurl
+    )
+endif()
+if (OPENSSL_FOUND)
+    target_link_libraries(entwine
+        PRIVATE
+            OpenSSL::applink
+            OpenSSL::Crypto
     )
 endif()
 
