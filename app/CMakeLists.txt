@@ -23,7 +23,7 @@ target_link_libraries(app
         ${PDAL_LIBRARIES}
         ${CMAKE_DL_LIBS}
         ${CMAKE_THREAD_LIBS_INIT}
-        pdalcpp
+        ${PDAL_LIBRARIES}
 )
 if (CURL_FOUND)
     target_link_libraries(app

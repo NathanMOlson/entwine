@@ -93,7 +93,7 @@ target_link_libraries(entwine
         ${LZMA_LIBRARY}
         ${CMAKE_DL_LIBS}
     PRIVATE
-        pdalcpp
+        ${PDAL_LIBRARIES}
         ${SHLWAPI}
 )
 if (CURL_FOUND)

@@ -15,7 +15,7 @@ macro(ENTWINE_ADD_TEST _name)
         PRIVATE entwine
             GTest::gtest
             GTest::gtest_main
-            pdalcpp
+            ${PDAL_LIBRARIES}
         )
     if (CURL_FOUND)
         target_link_libraries(${test-name}
