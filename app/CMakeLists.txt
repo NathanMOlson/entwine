@@ -6,6 +6,7 @@ set(
     "${BASE}/entwine.cpp"
     "${BASE}/info.cpp"
     "${BASE}/merge.cpp"
+    "${BASE}/convert.cpp"
     # "${BASE}/scan.cpp"
 )
 
@@ -23,8 +24,6 @@ target_link_libraries(app
         ${CMAKE_DL_LIBS}
         ${CMAKE_THREAD_LIBS_INIT}
         pdalcpp
-        OpenSSL::applink
-        OpenSSL::Crypto
 )
 if (CURL_FOUND)
     target_link_libraries(app
